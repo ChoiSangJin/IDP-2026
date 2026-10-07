@@ -1,0 +1,99 @@
+name: Validate and release Auto-DD
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.lock
+      - run: python -m pip install --no-deps -e .
+      - run: python -m pip install playwright==1.63.0
+      - run: python -m playwright install --with-deps chromium
+      - run: python scripts/test_ui.py
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: autodd-ci-only
+          POSTGRES_DB: autodd
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - run: python -m pip install -r requirements.lock
+      - run: python -m pip install --no-deps -e .
+      - run: python -m pytest -q
+        env:
+          AUTO_DD_TEST_PG_DSN: postgresql://postgres:autodd-ci-only@localhost:5432/autodd
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - run: python -m pip install -r requirements.lock
+      - run: python -m pip install --no-deps -e .
+      - run: python -m pytest -q
+      - run: python scripts/build.py
+      - name: Test packaged executable (Linux)
+        if: runner.os == 'Linux'
+        run: python scripts/smoke_binary.py dist/Auto-DD
+      - name: Test packaged executable (Windows)
+        if: runner.os == 'Windows'
+        run: python scripts/smoke_binary.py dist/Auto-DD.exe
+        env:
+          PYTHONUTF8: '1'
+      - name: Bundle Linux executable
+        if: runner.os == 'Linux'
+        run: tar -czf dist/Auto-DD-linux-x86_64.tar.gz -C dist Auto-DD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auto-DD-${{ runner.os }}
+          path: |
+            dist/*.exe
+            dist/*.tar.gz
+          if-no-files-found: error
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [postgres, build, ui]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Publish tested binaries with checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd artifacts
+          sha256sum Auto-DD.exe Auto-DD-linux-x86_64.tar.gz > SHA256SUMS
+          gh release create "$GITHUB_REF_NAME" Auto-DD.exe Auto-DD-linux-x86_64.tar.gz SHA256SUMS --repo "$GITHUB_REPOSITORY" --title "Auto-DD $GITHUB_REF_NAME" --notes-file ../docs/RELEASE.md
