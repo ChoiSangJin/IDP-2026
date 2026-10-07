@@ -3,6 +3,10 @@
 로컬 실행 기반 **DB 명세 자동화 · 데이터 카탈로그 · ERD 스튜디오**.
 2026 IDP 계획서의 PostgreSQL/BigQuery 메타데이터 추출, Excel/JSON 명세 생성, 실행 파일 패키징과 로컬 AI 설명 제안을 구현합니다.
 
+![카탈로그 화면](docs/catalog.png)
+
+![ERD 스튜디오](docs/erd.png)
+
 ## 바로 실행
 
 [GitHub Releases](https://github.com/ChoiSangJin/IDP-2026/releases)에서 운영체제에 맞는 실행 파일을 다운로드합니다.
