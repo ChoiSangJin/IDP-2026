@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "source": "sample",
+  "generated_at": "2026-10-07T05:51:29.985408+00:00",
+  "tables": [
+    {
+      "id": "public.customers",
+      "schema": "public",
+      "name": "customers",
+      "description": "고객 기본 정보",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "고객 식별자",
+          "primary_key": true,
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "varchar(100)",
+          "description": "고객 이름",
+          "primary_key": false,
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "email",
+          "type": "varchar(255)",
+          "description": "이메일",
+          "primary_key": false,
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "foreign_keys": []
+    },
+    {
+      "id": "public.orders",
+      "schema": "public",
+      "name": "orders",
+      "description": "고객 주문 내역",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "description": "주문 식별자",
+          "primary_key": true,
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "customer_id",
+          "type": "bigint",
+          "description": "고객 식별자",
+          "primary_key": false,
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "ordered_at",
+          "type": "timestamptz",
+          "description": "주문 일시",
+          "primary_key": false,
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "total",
+          "type": "numeric(12,2)",
+          "description": "주문 금액",
+          "primary_key": false,
+          "nullable": false,
+          "default": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "orders_customer_fk",
+          "columns": [
+            "customer_id"
+          ],
+          "target_table": "public.customers",
+          "target_columns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "public.order_items",
+      "schema": "public",
+      "name": "order_items",
+      "description": "주문별 상품",
+      "columns": [
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "description": "주문 식별자",
+          "primary_key": true,
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "line_no",
+          "type": "integer",
+          "description": "주문 행 번호",
+          "primary_key": true,
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "product_name",
+          "type": "varchar(200)",
+          "description": "상품 이름",
+          "primary_key": false,
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "description": "수량",
+          "primary_key": false,
+          "nullable": false,
+          "default": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "items_order_fk",
+          "columns": [
+            "order_id"
+          ],
+          "target_table": "public.orders",
+          "target_columns": [
+            "id"
+          ]
+        }
+      ]
+    }
+  ]
+}
