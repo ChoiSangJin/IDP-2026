@@ -1,9 +1,11 @@
 """Launch a built executable and exercise its embedded UI + export endpoint."""
 import json
+import os
 import subprocess
 import sys
 import tempfile
 import time
+import traceback
 import urllib.request
 from pathlib import Path
 
@@ -37,6 +39,15 @@ with tempfile.TemporaryDirectory() as temp:
         request = urllib.request.Request(base+"api/export/xlsx", data=json.dumps(data).encode(), headers={"X-Auto-DD-Token":fragment,"Content-Type":"application/json"})
         assert opener.open(request).read().startswith(b"PK")
         print("Frozen executable: UI, embedded assets, metadata and Excel export passed")
+    except Exception:
+        detail = traceback.format_exc()
+        print("::error::"+detail.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))
+        raise
     finally:
-        proc.terminate()
+        if os.name == "nt" and proc.poll() is None:
+            # PyInstaller onefile spawns a child. Killing only its bootloader leaves
+            # the child serving HTTP and holding the temporary log open on Windows.
+            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], check=True, capture_output=True)
+        elif proc.poll() is None:
+            proc.terminate()
         proc.wait(timeout=15)

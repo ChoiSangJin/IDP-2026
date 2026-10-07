@@ -12,6 +12,10 @@ from .export import export
 
 
 def main(argv=None):
+    # Frozen Python ignores PYTHONUTF8; Windows redirected logs must still handle Korean.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="Auto-DD — 로컬 DB 명세 · 카탈로그 · ERD")
     commands = parser.add_subparsers(dest="command")
     serve = commands.add_parser("serve", help="로컬 UI 실행 (기본 동작)")
